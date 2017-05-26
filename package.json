@@ -1,0 +1,29 @@
+{
+  "name": "downfall-board-game",
+  "version": "0.0.1",
+  "description": "Downfall Board Game in Elm",
+  "scripts": {
+    "start": "elm-reactor",
+    "test": "nodemon -w ./tests -e .elm -x \"clear && elm-test || exit 1\""
+  },
+  "author": "isti115",
+  "license": "ISC",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Isti115/downfall-board-game.git"
+  },
+  "keywords": [
+    "downfall",
+    "board-game",
+    "elm"
+  ],
+  "bugs": {
+    "url": "https://github.com/Isti115/downfall-board-game/issues"
+  },
+  "homepage": "https://github.com/Isti115/downfall-board-game#readme"
+}
