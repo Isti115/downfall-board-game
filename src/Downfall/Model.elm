@@ -1,7 +1,7 @@
 module Downfall.Model
     exposing
         ( Angle
-        , Container
+        , Container(Input, Output, Wheel)
         , Identifier
         , Model
         , connect
@@ -9,6 +9,7 @@ module Downfall.Model
         , makeOutput
         , makeSlot
         , makeWheel
+        , rotateWheel
         )
 
 
@@ -91,6 +92,19 @@ makeOutput identifier circleCount =
         , circleCount = circleCount
         , connections = []
         }
+
+
+rotateWheel : Angle -> Container -> Container
+rotateWheel angle currentContainer =
+    case currentContainer of
+        Input containerRecord ->
+            Input containerRecord
+
+        Wheel containerRecord ->
+            Wheel { containerRecord | angle = containerRecord.angle + angle }
+
+        Output containerRecord ->
+            Output containerRecord
 
 
 
