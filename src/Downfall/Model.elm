@@ -5,6 +5,8 @@ module Downfall.Model
         , Identifier
         , Model
         , connect
+        , getConnections
+        , getIdentifier
         , makeInput
         , makeOutput
         , makeSlot
@@ -92,6 +94,19 @@ makeOutput identifier circleCount =
         , circleCount = circleCount
         , connections = []
         }
+
+
+getIdentifier : Container -> Identifier
+getIdentifier currentContainer =
+    case currentContainer of
+        Input { identifier } ->
+            identifier
+
+        Wheel { identifier } ->
+            identifier
+
+        Output { identifier } ->
+            identifier
 
 
 rotateWheel : Angle -> Container -> Container
@@ -186,3 +201,16 @@ connect fromId toId angle containers =
 
         [] ->
             []
+
+
+getConnections : Container -> List Connection
+getConnections currentContainer =
+    case currentContainer of
+        Input { connections } ->
+            connections
+
+        Wheel { connections } ->
+            connections
+
+        Output { connections } ->
+            connections

@@ -6,6 +6,9 @@ import Downfall.Model
         , Container(Input, Output, Wheel)
         , Identifier
         , Model
+        , getConnections
+        , getIdentifier
+        , makeWheel
         , rotateWheel
         )
 import Utilities
@@ -15,12 +18,58 @@ type Msg
     = Rotate Identifier Angle
 
 
+getContainer : Identifier -> List Container -> Maybe Container
+getContainer identifier containers =
+    case containers of
+        ((Input containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                Just currentContainer
+            else
+                getContainer identifier rest
 
--- updateContainer angle currentContainer
+        ((Wheel containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                Just currentContainer
+            else
+                getContainer identifier rest
+
+        ((Output containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                Just currentContainer
+            else
+                getContainer identifier rest
+
+        [] ->
+            Nothing
 
 
-updateContainers : Identifier -> Angle -> List Container -> List Container
-updateContainers identifier angle containers =
+setContainer : Identifier -> Container -> List Container -> List Container
+setContainer identifier newContainer containers =
+    case containers of
+        ((Input containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                newContainer :: rest
+            else
+                currentContainer :: setContainer identifier newContainer rest
+
+        ((Wheel containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                newContainer :: rest
+            else
+                currentContainer :: setContainer identifier newContainer rest
+
+        ((Output containerRecord) as currentContainer) :: rest ->
+            if containerRecord.identifier == identifier then
+                newContainer :: rest
+            else
+                currentContainer :: setContainer identifier newContainer rest
+
+        [] ->
+            []
+
+
+updateContainers : Identifier -> List Container -> List Container
+updateContainers identifier containers =
     containers
 
 
@@ -48,7 +97,8 @@ update msg model =
     case msg of
         Rotate identifier angle ->
             let
-                newModel =
+                rotatedModel : Model
+                rotatedModel =
                     { model
                         | containers =
                             performRotation
@@ -56,10 +106,38 @@ update msg model =
                                 (Utilities.sign angle)
                                 model.containers
                     }
+
+                rotatedContainer : Container
+                rotatedContainer =
+                    getContainer identifier model.containers
+                        |> Maybe.withDefault (makeWheel "0" 0 [])
+
+                rotatedContainerIdentifier : Identifier
+                rotatedContainerIdentifier =
+                    getIdentifier rotatedContainer
+
+                connectedContainerIndentifiers : List Identifier
+                connectedContainerIndentifiers =
+                    getConnections rotatedContainer
+                        |> List.map
+                            (\c ->
+                                if c.from /= rotatedContainerIdentifier then
+                                    c.from
+                                else
+                                    c.to
+                            )
+
+                updatedModel =
+                    { model
+                        | containers =
+                            updateContainers
+                                identifier
+                                model.containers
+                    }
             in
             if angle > 0 then
-                update (Rotate identifier (angle - 1)) newModel
+                update (Rotate identifier (angle - 1)) rotatedModel
             else if angle < 0 then
-                update (Rotate identifier (angle + 1)) newModel
+                update (Rotate identifier (angle + 1)) rotatedModel
             else
                 model
