@@ -4,12 +4,14 @@ import Downfall.Model
     exposing
         ( Angle
         , Container(Input, Output, Wheel)
+        , ContainerStore
         , Identifier
         , Model
         , getConnections
+        , getContainer
         , getIdentifier
-        , makeWheel
         , rotateWheel
+        , setContainer
         )
 import Utilities
 
@@ -18,78 +20,28 @@ type Msg
     = Rotate Identifier Angle
 
 
-getContainer : Identifier -> List Container -> Maybe Container
-getContainer identifier containers =
-    case containers of
-        ((Input containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                Just currentContainer
-            else
-                getContainer identifier rest
-
-        ((Wheel containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                Just currentContainer
-            else
-                getContainer identifier rest
-
-        ((Output containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                Just currentContainer
-            else
-                getContainer identifier rest
-
-        [] ->
-            Nothing
-
-
-setContainer : Identifier -> Container -> List Container -> List Container
-setContainer identifier newContainer containers =
-    case containers of
-        ((Input containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                newContainer :: rest
-            else
-                currentContainer :: setContainer identifier newContainer rest
-
-        ((Wheel containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                newContainer :: rest
-            else
-                currentContainer :: setContainer identifier newContainer rest
-
-        ((Output containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                newContainer :: rest
-            else
-                currentContainer :: setContainer identifier newContainer rest
-
-        [] ->
-            []
-
-
-updateContainers : Identifier -> List Container -> List Container
-updateContainers identifier containers =
+updateContainers : Identifier -> List Identifier -> ContainerStore -> ContainerStore
+updateContainers identifier connectedContainerIndentifiers containers =
     containers
 
 
-performRotation : Identifier -> Angle -> List Container -> List Container
+performRotation : Identifier -> Angle -> ContainerStore -> ContainerStore
 performRotation identifier angle containers =
-    case containers of
-        ((Input containerRecord) as currentContainer) :: rest ->
-            currentContainer :: performRotation identifier angle rest
+    let
+        currentContainer : Container
+        currentContainer =
+            getContainer identifier containers
+    in
+    case currentContainer of
+        Input containerRecord ->
+            Debug.crash "Cannot rotate an input."
 
-        ((Wheel containerRecord) as currentContainer) :: rest ->
-            if containerRecord.identifier == identifier then
-                rotateWheel angle currentContainer :: rest
-            else
-                currentContainer :: performRotation identifier angle rest
+        Wheel containerRecord ->
+            containers
+                |> setContainer identifier (rotateWheel angle currentContainer)
 
-        ((Output containerRecord) as currentContainer) :: rest ->
-            currentContainer :: performRotation identifier angle rest
-
-        [] ->
-            []
+        Output containerRecord ->
+            Debug.crash "Cannot rotate an output."
 
 
 update : Msg -> Model -> Model
@@ -110,7 +62,6 @@ update msg model =
                 rotatedContainer : Container
                 rotatedContainer =
                     getContainer identifier model.containers
-                        |> Maybe.withDefault (makeWheel "0" 0 [])
 
                 rotatedContainerIdentifier : Identifier
                 rotatedContainerIdentifier =
@@ -132,6 +83,7 @@ update msg model =
                         | containers =
                             updateContainers
                                 identifier
+                                connectedContainerIndentifiers
                                 model.containers
                     }
             in

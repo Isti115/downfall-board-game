@@ -2,21 +2,31 @@ module Downfall.Model
     exposing
         ( Angle
         , Container(Input, Output, Wheel)
+        , ContainerStore
         , Identifier
         , Model
         , connect
         , getConnections
+        , getContainer
         , getIdentifier
+        , insertContainer
         , makeInput
         , makeOutput
         , makeSlot
         , makeWheel
         , rotateWheel
+        , setContainer
         )
+
+import Dict exposing (Dict)
+
+
+type alias ContainerStore =
+    Dict String Container
 
 
 type alias Model =
-    { containers : List Container
+    { containers : ContainerStore
     }
 
 
@@ -126,6 +136,53 @@ rotateWheel angle currentContainer =
 --
 
 
+insertContainer : Container -> ContainerStore -> ContainerStore
+insertContainer currentContainer containerStore =
+    Dict.insert (getIdentifier currentContainer) currentContainer containerStore
+
+
+getContainer : Identifier -> ContainerStore -> Container
+getContainer identifier containers =
+    let
+        maybeCurrentContainer : Maybe Container
+        maybeCurrentContainer =
+            Dict.get identifier containers
+    in
+    case maybeCurrentContainer of
+        Just currentContainer ->
+            currentContainer
+
+        Nothing ->
+            Debug.crash
+                ("getContainer: Container with identifier '"
+                    ++ identifier
+                    ++ "' does not exist."
+                )
+
+
+setContainer : Identifier -> Container -> ContainerStore -> ContainerStore
+setContainer identifier newContainer containers =
+    let
+        maybeCurrentContainer : Maybe Container
+        maybeCurrentContainer =
+            Dict.get identifier containers
+    in
+    case maybeCurrentContainer of
+        Just currentContainer ->
+            Dict.insert identifier newContainer containers
+
+        Nothing ->
+            Debug.crash
+                ("setContainer: Container with identifier '"
+                    ++ identifier
+                    ++ "' does not exist."
+                )
+
+
+
+--
+
+
 type SlotState
     = Empty
     | Occupied
@@ -153,54 +210,46 @@ type alias Connection =
 
 connectHelper :
     Connection
-    -> ({ containerRecord | connections : List Connection, identifier : Identifier } -> Container)
-    -> { containerRecord | connections : List Connection, identifier : Identifier }
-    -> Identifier
-    -> Identifier
-    -> Angle
-    -> List Container
-    -> List Container
-connectHelper currentConnection wrapper currentContainer fromId toId angle rest =
-    let
-        connectedRest =
-            connect fromId toId angle rest
-    in
-    if
-        currentContainer.identifier
-            == fromId
-            || currentContainer.identifier
-            == toId
-    then
-        wrapper
-            { currentContainer
-                | connections = currentConnection :: currentContainer.connections
-            }
-            :: connectedRest
-    else
-        wrapper currentContainer :: connectedRest
+    -> { a | connections : List Connection }
+    -> { a | connections : List Connection }
+connectHelper connection containerRecord =
+    { containerRecord | connections = connection :: containerRecord.connections }
 
 
-connect : Identifier -> Identifier -> Angle -> List Container -> List Container
+addConnection : Connection -> Container -> Container
+addConnection connection currentContainer =
+    case currentContainer of
+        Input containerRecord ->
+            Input (connectHelper connection containerRecord)
+
+        Wheel containerRecord ->
+            Wheel (connectHelper connection containerRecord)
+
+        Output containerRecord ->
+            Output (connectHelper connection containerRecord)
+
+
+connect : Identifier -> Identifier -> Angle -> ContainerStore -> ContainerStore
 connect fromId toId angle containers =
     let
+        currentConnection : Connection
         currentConnection =
             { from = fromId
             , to = toId
             , angle = angle
             }
+
+        fromContainer : Container
+        fromContainer =
+            getContainer fromId containers
+
+        toContainer : Container
+        toContainer =
+            getContainer toId containers
     in
-    case containers of
-        (Input currentContainer) :: rest ->
-            connectHelper currentConnection Input currentContainer fromId toId angle rest
-
-        (Wheel currentContainer) :: rest ->
-            connectHelper currentConnection Wheel currentContainer fromId toId angle rest
-
-        (Output currentContainer) :: rest ->
-            connectHelper currentConnection Output currentContainer fromId toId angle rest
-
-        [] ->
-            []
+    containers
+        |> setContainer fromId (addConnection currentConnection fromContainer)
+        |> setContainer toId (addConnection currentConnection toContainer)
 
 
 getConnections : Container -> List Connection

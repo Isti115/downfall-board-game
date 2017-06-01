@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Dict exposing (Dict)
 import Downfall.Model
     exposing
         ( Angle
@@ -7,6 +8,7 @@ import Downfall.Model
         , Identifier
         , Model
         , connect
+        , insertContainer
         , makeInput
         , makeOutput
         , makeSlot
@@ -49,6 +51,7 @@ init =
         , makeWheel "3" 0 (List.map makeSlot [ 90, 270 ])
         , makeOutput "X" 0
         ]
+            |> List.foldl insertContainer Dict.empty
             |> connect "A" "1" 115
             |> connect "1" "2" 230
             |> connect "2" "3" 180
@@ -81,9 +84,8 @@ update msg model =
 view : Model -> Html Msg
 view model =
     pre []
-        (List.map
-            (\c -> p [] [ text <| toString c ])
-            model.containers
+        (Dict.toList model.containers
+            |> List.map (\( k, c ) -> p [] [ text <| toString c ])
         )
 
 
