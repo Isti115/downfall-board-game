@@ -1,6 +1,7 @@
 module Downfall.Model
     exposing
         ( Angle
+        , Connection
         , Container(Input, Output, Wheel)
         , ContainerStore
         , Identifier
@@ -14,7 +15,7 @@ module Downfall.Model
         , makeOutput
         , makeSlot
         , makeWheel
-        , rotateWheel
+        , rotateContainer
         , setContainer
         )
 
@@ -43,7 +44,7 @@ type alias CircleCount =
 
 
 type alias Angle =
-    Float
+    Int
 
 
 
@@ -58,7 +59,7 @@ type Container
 
 type alias InputRecord =
     { identifier : Identifier
-    , circleCount : CircleCount
+    , colors : List Color
     , connections : List Connection
     }
 
@@ -73,16 +74,16 @@ type alias WheelRecord =
 
 type alias OutputRecord =
     { identifier : Identifier
-    , circleCount : CircleCount
+    , colors : List Color
     , connections : List Connection
     }
 
 
-makeInput : Identifier -> CircleCount -> Container
-makeInput identifier circleCount =
+makeInput : Identifier -> List Color -> Container
+makeInput identifier colors =
     Input
         { identifier = identifier
-        , circleCount = circleCount
+        , colors = colors
         , connections = []
         }
 
@@ -97,11 +98,11 @@ makeWheel identifier angle slots =
         }
 
 
-makeOutput : Identifier -> CircleCount -> Container
-makeOutput identifier circleCount =
+makeOutput : Identifier -> List Color -> Container
+makeOutput identifier colors =
     Output
         { identifier = identifier
-        , circleCount = circleCount
+        , colors = colors
         , connections = []
         }
 
@@ -119,17 +120,17 @@ getIdentifier currentContainer =
             identifier
 
 
-rotateWheel : Angle -> Container -> Container
-rotateWheel angle currentContainer =
+rotateContainer : Angle -> Container -> Container
+rotateContainer angle currentContainer =
     case currentContainer of
         Input containerRecord ->
-            Input containerRecord
+            Debug.crash "rotateContainer: Cannot rotate an input."
 
         Wheel containerRecord ->
-            Wheel { containerRecord | angle = containerRecord.angle + angle }
+            Wheel { containerRecord | angle = (containerRecord.angle + angle) % 360 }
 
         Output containerRecord ->
-            Output containerRecord
+            Debug.crash "rotateContainer: Cannot rotate an output."
 
 
 
@@ -160,9 +161,13 @@ getContainer identifier containers =
                 )
 
 
-setContainer : Identifier -> Container -> ContainerStore -> ContainerStore
-setContainer identifier newContainer containers =
+setContainer : Container -> ContainerStore -> ContainerStore
+setContainer newContainer containers =
     let
+        identifier : Identifier
+        identifier =
+            getIdentifier newContainer
+
         maybeCurrentContainer : Maybe Container
         maybeCurrentContainer =
             Dict.get identifier containers
@@ -183,9 +188,13 @@ setContainer identifier newContainer containers =
 --
 
 
+type alias Color =
+    String
+
+
 type SlotState
     = Empty
-    | Occupied
+    | Occupied Color
 
 
 type alias Slot =
@@ -201,10 +210,54 @@ makeSlot angle =
     }
 
 
+getSlots : Container -> List Slot
+getSlots currentContainer =
+    case currentContainer of
+        Input _ ->
+            Debug.crash "getSlots: Inputs do not have slots."
+
+        Wheel { slots } ->
+            slots
+
+        Output _ ->
+            Debug.crash "getSlots: Outputs do not have slots."
+
+
+getSlotAt : (Slot -> Angle) -> Angle -> Container -> Slot
+getSlotAt direction angle currentContainer =
+    let
+        currentSlots : List Slot
+        currentSlots =
+            getSlots currentContainer
+
+        foundSlot : Maybe Slot
+        foundSlot =
+            currentSlots
+                |> List.filter (\slot -> direction slot == angle)
+                |> List.head
+    in
+    case foundSlot of
+        Just slot ->
+            slot
+
+        Nothing ->
+            Debug.crash
+                ("getSlotAt: Container "
+                    ++ getIdentifier currentContainer
+                    ++ " doesn't have a slot at "
+                    ++ toString angle
+                )
+
+
+
+--
+
+
 type alias Connection =
     { from : Identifier
     , to : Identifier
-    , angle : Angle
+    , fromAngle : Angle
+    , toAngle : Angle
     }
 
 
@@ -230,13 +283,14 @@ addConnection connection currentContainer =
 
 
 connect : Identifier -> Identifier -> Angle -> ContainerStore -> ContainerStore
-connect fromId toId angle containers =
+connect fromId toId fromAngle containers =
     let
         currentConnection : Connection
         currentConnection =
             { from = fromId
             , to = toId
-            , angle = angle
+            , fromAngle = fromAngle
+            , toAngle = (fromAngle + 180) % 360
             }
 
         fromContainer : Container
@@ -248,8 +302,8 @@ connect fromId toId angle containers =
             getContainer toId containers
     in
     containers
-        |> setContainer fromId (addConnection currentConnection fromContainer)
-        |> setContainer toId (addConnection currentConnection toContainer)
+        |> setContainer (addConnection currentConnection fromContainer)
+        |> setContainer (addConnection currentConnection toContainer)
 
 
 getConnections : Container -> List Connection

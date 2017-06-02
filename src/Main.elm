@@ -45,11 +45,11 @@ main =
 init : ( Model, Cmd Msg )
 init =
     { containers =
-        [ makeInput "A" 5
+        [ makeInput "A" (List.repeat 5 "Green")
         , makeWheel "1" 0 (List.map makeSlot [ 45, 135, 225, 315 ])
         , makeWheel "2" 0 (List.map makeSlot [ 0, 120, 240 ])
         , makeWheel "3" 0 (List.map makeSlot [ 90, 270 ])
-        , makeOutput "X" 0
+        , makeOutput "X" []
         ]
             |> List.foldl insertContainer Dict.empty
             |> connect "A" "1" 115
@@ -59,7 +59,7 @@ init =
     }
         ! []
         |> Tuple.first
-        |> update (Rotate "1" 10)
+        |> update (Rotate "1" 0)
         |> Tuple.first
         |> update (Rotate "2" 70)
         |> Tuple.first
@@ -70,14 +70,11 @@ init =
 -- UPDATE
 -- type alias Msg =
 --     Downfall.Update.Msg
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    Downfall.Update.update msg model ! []
-
-
-
+--
+-- update : Msg -> Model -> ( Model, Cmd Msg )
+-- update msg model =
+--     Downfall.Update.update msg model ! []
+--
 -- VIEW
 
 

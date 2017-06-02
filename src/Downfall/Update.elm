@@ -3,6 +3,7 @@ module Downfall.Update exposing (Msg(Rotate), update)
 import Downfall.Model
     exposing
         ( Angle
+        , Connection
         , Container(Input, Output, Wheel)
         , ContainerStore
         , Identifier
@@ -10,7 +11,7 @@ import Downfall.Model
         , getConnections
         , getContainer
         , getIdentifier
-        , rotateWheel
+        , rotateContainer
         , setContainer
         )
 import Utilities
@@ -20,76 +21,115 @@ type Msg
     = Rotate Identifier Angle
 
 
-updateContainers : Identifier -> List Identifier -> ContainerStore -> ContainerStore
-updateContainers identifier connectedContainerIndentifiers containers =
-    containers
+updateContainers : Connection -> ( Container, Container ) -> ( Container, Container )
+updateContainers connection ( rotatedContainer, currentContainer ) =
+    case rotatedContainer of
+        Input _ ->
+            Debug.crash "updateContainers: Inputs should never be rotated."
+
+        Wheel rotatedContainerRecord ->
+            case currentContainer of
+                Input containerRecord ->
+                    -- if getSlotAt
+                    ( rotatedContainer, currentContainer )
+
+                Wheel containerRecord ->
+                    ( rotatedContainer, currentContainer )
+
+                Output containerRecord ->
+                    ( rotatedContainer, currentContainer )
+
+        Output _ ->
+            Debug.crash "updateContainers: Outputs should never be rotated."
 
 
-performRotation : Identifier -> Angle -> ContainerStore -> ContainerStore
-performRotation identifier angle containers =
+processConnection : Identifier -> Connection -> ( Container, ContainerStore ) -> ( Container, ContainerStore )
+processConnection identifier connection ( currentRotatedContainer, currentContainers ) =
     let
-        currentContainer : Container
-        currentContainer =
-            getContainer identifier containers
+        ( updatedCurrentRotatedContainer, updatedCurrentContainer ) =
+            updateContainers
+                connection
+                ( currentRotatedContainer
+                , getContainer
+                    (if connection.from /= identifier then
+                        connection.from
+                     else
+                        connection.to
+                    )
+                    currentContainers
+                )
     in
+    ( updatedCurrentRotatedContainer
+    , currentContainers |> setContainer updatedCurrentContainer
+    )
+
+
+processConnections : Identifier -> Container -> List Connection -> ContainerStore -> ContainerStore
+processConnections identifier rotatedContainer filteredConnections containers =
+    let
+        -- updatedRotatedContainer : Container
+        -- updatedContainers : ContainerStore
+        ( updatedRotatedContainer, updatedContainers ) =
+            filteredConnections
+                |> List.foldl
+                    (processConnection identifier)
+                    ( rotatedContainer, containers )
+    in
+    updatedContainers |> setContainer updatedRotatedContainer
+
+
+connectionFilter : Container -> Connection -> Bool
+connectionFilter currentContainer connection =
     case currentContainer of
-        Input containerRecord ->
-            Debug.crash "Cannot rotate an input."
+        Input _ ->
+            Debug.crash "connectionFilter: Inputs do not have slots."
 
         Wheel containerRecord ->
-            containers
-                |> setContainer identifier (rotateWheel angle currentContainer)
+            containerRecord.slots
+                |> List.any
+                    (\slot ->
+                        containerRecord.angle
+                            + slot.angle
+                            == connection.fromAngle
+                            || containerRecord.angle
+                            + slot.angle
+                            == connection.toAngle
+                    )
 
-        Output containerRecord ->
-            Debug.crash "Cannot rotate an output."
+        Output _ ->
+            Debug.crash "connectionFilter: Outputs do not have slots."
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Rotate identifier angle ->
             let
-                rotatedModel : Model
-                rotatedModel =
-                    { model
-                        | containers =
-                            performRotation
-                                identifier
-                                (Utilities.sign angle)
-                                model.containers
-                    }
+                currentContainer : Container
+                currentContainer =
+                    getContainer identifier model.containers
 
                 rotatedContainer : Container
                 rotatedContainer =
-                    getContainer identifier model.containers
+                    rotateContainer (Utilities.sign angle) currentContainer
 
-                rotatedContainerIdentifier : Identifier
-                rotatedContainerIdentifier =
-                    getIdentifier rotatedContainer
-
-                connectedContainerIndentifiers : List Identifier
-                connectedContainerIndentifiers =
+                filteredConnections =
                     getConnections rotatedContainer
-                        |> List.map
-                            (\c ->
-                                if c.from /= rotatedContainerIdentifier then
-                                    c.from
-                                else
-                                    c.to
-                            )
+                        |> List.filterMap (connectionFilter rotatedContainer)
 
+                updatedContainers : ContainerStore
+                updatedContainers =
+                    model.containers
+                        |> setContainer rotatedContainer
+                        |> processConnections identifier rotatedContainer filteredConnections
+
+                updatedModel : Model
                 updatedModel =
-                    { model
-                        | containers =
-                            updateContainers
-                                identifier
-                                connectedContainerIndentifiers
-                                model.containers
-                    }
+                    { model | containers = updatedContainers }
             in
             if angle > 0 then
-                update (Rotate identifier (angle - 1)) rotatedModel
+                update (Rotate identifier (angle - 1)) updatedModel
             else if angle < 0 then
-                update (Rotate identifier (angle + 1)) rotatedModel
+                update (Rotate identifier (angle + 1)) updatedModel
             else
-                model
+                model ! []
