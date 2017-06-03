@@ -1,11 +1,7 @@
 module Main exposing (..)
 
-import Dict exposing (Dict)
-import Downfall.Game
-import Downfall.Model
-import Downfall.Types
-import Downfall.Update
-import Html exposing (..)
+import Downfall.Main as Downfall
+import Html
 
 
 main : Program Never Model Msg
@@ -19,41 +15,53 @@ main =
 
 
 
--- MODEL
+-- INIT
 
 
 type alias Model =
-    Downfall.Model.Model
+    { downfall : Downfall.Model
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    Downfall.Game.init ! []
-
-
-
--- UPDATE
-
-
-type alias Msg =
-    Downfall.Types.Msg
-
-
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    Downfall.Update.update msg model ! []
+    let
+        ( downfallInit, downfallCmd ) =
+            Downfall.init
+    in
+    { downfall = downfallInit
+    }
+        ! [ Cmd.map DownfallMsg downfallCmd ]
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Html.Html Msg
 view model =
-    pre []
-        (Dict.toList model.containers
-            |> List.map (\( k, c ) -> p [] [ text <| toString c ])
-        )
+    Html.div []
+        [ Html.map DownfallMsg (Downfall.view model.downfall)
+        ]
+
+
+
+-- UPDATE
+
+
+type Msg
+    = DownfallMsg Downfall.Msg
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        DownfallMsg downfallMsg ->
+            let
+                ( downfall, downfallCmd ) =
+                    Downfall.update downfallMsg model.downfall
+            in
+            { model | downfall = downfall } ! [ Cmd.map DownfallMsg downfallCmd ]
 
 
 
@@ -62,4 +70,6 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Sub.map DownfallMsg (Downfall.subscriptions model.downfall)
+        ]
