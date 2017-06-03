@@ -59,11 +59,15 @@ init =
     }
         ! []
         |> Tuple.first
-        |> update (Rotate "1" 0)
+        |> update (Rotate "1" -20)
+        |> Tuple.first
+        |> update (Rotate "1" 90)
+        |> Tuple.first
+        |> update (Rotate "1" -65)
         |> Tuple.first
         |> update (Rotate "2" 70)
         |> Tuple.first
-        |> update (Rotate "2" -50)
+        |> update (Rotate "2" (-50 + 50))
 
 
 

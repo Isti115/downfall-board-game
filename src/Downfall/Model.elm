@@ -4,19 +4,26 @@ module Downfall.Model
         , Connection
         , Container(Input, Output, Wheel)
         , ContainerStore
+        , Direction(In, Out)
         , Identifier
         , Model
+        , Slot
+        , SlotState(Empty, Occupied)
         , connect
         , getConnections
         , getContainer
         , getIdentifier
+        , getSlotAt
         , insertContainer
         , makeInput
         , makeOutput
         , makeSlot
         , makeWheel
+        , pullFromInput
+        , pushToOutput
         , rotateContainer
         , setContainer
+        , setSlotAt
         )
 
 import Dict exposing (Dict)
@@ -118,6 +125,19 @@ getIdentifier currentContainer =
 
         Output { identifier } ->
             identifier
+
+
+getAngle : Container -> Angle
+getAngle currentContainer =
+    case currentContainer of
+        Input _ ->
+            Debug.crash "getAngle: Cannot get angle of an input."
+
+        Wheel { angle } ->
+            angle
+
+        Output _ ->
+            Debug.crash "getAngle: Cannot get angle of an output."
 
 
 rotateContainer : Angle -> Container -> Container
@@ -223,74 +243,165 @@ getSlots currentContainer =
             Debug.crash "getSlots: Outputs do not have slots."
 
 
-getSlotAt : (Slot -> Angle) -> Angle -> Container -> Slot
-getSlotAt direction angle currentContainer =
+setSlots : List Slot -> Container -> Container
+setSlots slots currentContainer =
+    case currentContainer of
+        Input _ ->
+            Debug.crash "setSlots: Inputs do not have slots."
+
+        Wheel containerRecord ->
+            Wheel { containerRecord | slots = slots }
+
+        Output _ ->
+            Debug.crash "setSlots: Outputs do not have slots."
+
+
+getSlotAt : Angle -> Container -> Maybe Slot
+getSlotAt angle currentContainer =
     let
         currentSlots : List Slot
         currentSlots =
             getSlots currentContainer
 
+        currentAngle : Angle
+        currentAngle =
+            getAngle currentContainer
+
         foundSlot : Maybe Slot
         foundSlot =
             currentSlots
-                |> List.filter (\slot -> direction slot == angle)
+                |> List.filter (\slot -> (slot.angle + currentAngle) % 360 == angle)
                 |> List.head
     in
-    case foundSlot of
-        Just slot ->
-            slot
+    -- case foundSlot of
+    --     Just slot ->
+    --         slot
+    --     Nothing ->
+    --         Debug.crash
+    --             ("getSlotAt: Container "
+    --                 ++ getIdentifier currentContainer
+    --                 ++ " doesn't have a slot at "
+    --                 ++ toString angle
+    --             )
+    foundSlot
 
-        Nothing ->
-            Debug.crash
-                ("getSlotAt: Container "
-                    ++ getIdentifier currentContainer
-                    ++ " doesn't have a slot at "
-                    ++ toString angle
-                )
+
+setSlotAt : Angle -> SlotState -> Container -> Container
+setSlotAt angle slotState currentContainer =
+    let
+        currentSlots : List Slot
+        currentSlots =
+            getSlots currentContainer
+
+        currentAngle : Angle
+        currentAngle =
+            getAngle currentContainer
+
+        updatedSlots : List Slot
+        updatedSlots =
+            currentSlots
+                |> List.map
+                    (\slot ->
+                        if (slot.angle + currentAngle) % 360 == angle then
+                            { slot | state = slotState }
+                        else
+                            slot
+                    )
+    in
+    setSlots updatedSlots currentContainer
 
 
 
 --
 
 
+pullFromInput : Container -> ( Container, Maybe Color )
+pullFromInput inputContainer =
+    case inputContainer of
+        Input containerRecord ->
+            case containerRecord.colors of
+                currentColor :: rest ->
+                    ( Input { containerRecord | colors = rest }, Just currentColor )
+
+                [] ->
+                    ( inputContainer, Nothing )
+
+        Wheel _ ->
+            Debug.crash "pullFromInput: Should only be called for inputs."
+
+        Output _ ->
+            Debug.crash "pullFromInput: Should only be called for inputs."
+
+
+pushToOutput : Color -> Container -> Container
+pushToOutput currentColor outputContainer =
+    case outputContainer of
+        Input _ ->
+            Debug.crash "pushToOutput: Should only be called for outputs."
+
+        Wheel _ ->
+            Debug.crash "pushToOutput: Should only be called for outputs."
+
+        Output containerRecord ->
+            Output { containerRecord | colors = currentColor :: containerRecord.colors }
+
+
+
+--
+
+
+type Direction
+    = Out
+    | In
+
+
 type alias Connection =
-    { from : Identifier
-    , to : Identifier
-    , fromAngle : Angle
-    , toAngle : Angle
+    { direction : Direction
+    , target : Identifier
+    , localAngle : Angle
+    , remoteAngle : Angle
     }
 
 
-connectHelper :
-    Connection
-    -> { a | connections : List Connection }
-    -> { a | connections : List Connection }
-connectHelper connection containerRecord =
-    { containerRecord | connections = connection :: containerRecord.connections }
+
+-- connectHelper :
+--     Connection
+--     -> { a | connections : List Connection }
+--     -> { a | connections : List Connection }
+-- connectHelper connection containerRecord =
+--     { containerRecord | connections = connection :: containerRecord.connections }
 
 
 addConnection : Connection -> Container -> Container
 addConnection connection currentContainer =
     case currentContainer of
         Input containerRecord ->
-            Input (connectHelper connection containerRecord)
+            Input { containerRecord | connections = connection :: containerRecord.connections }
 
         Wheel containerRecord ->
-            Wheel (connectHelper connection containerRecord)
+            Wheel { containerRecord | connections = connection :: containerRecord.connections }
 
         Output containerRecord ->
-            Output (connectHelper connection containerRecord)
+            Output { containerRecord | connections = connection :: containerRecord.connections }
 
 
 connect : Identifier -> Identifier -> Angle -> ContainerStore -> ContainerStore
 connect fromId toId fromAngle containers =
     let
-        currentConnection : Connection
-        currentConnection =
-            { from = fromId
-            , to = toId
-            , fromAngle = fromAngle
-            , toAngle = (fromAngle + 180) % 360
+        fromConnection : Connection
+        fromConnection =
+            { direction = Out
+            , target = toId
+            , localAngle = fromAngle
+            , remoteAngle = (fromAngle + 180) % 360
+            }
+
+        toConnection : Connection
+        toConnection =
+            { direction = In
+            , target = fromId
+            , localAngle = (fromAngle + 180) % 360
+            , remoteAngle = fromAngle
             }
 
         fromContainer : Container
@@ -302,8 +413,8 @@ connect fromId toId fromAngle containers =
             getContainer toId containers
     in
     containers
-        |> setContainer (addConnection currentConnection fromContainer)
-        |> setContainer (addConnection currentConnection toContainer)
+        |> setContainer (addConnection fromConnection fromContainer)
+        |> setContainer (addConnection toConnection toContainer)
 
 
 getConnections : Container -> List Connection
