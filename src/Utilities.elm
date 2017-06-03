@@ -1,9 +1,5 @@
 module Utilities exposing (sign)
 
--- betweenAngles : Float -> Float -> Float -> Bool
--- betweenAngles _ _ _ =
---     False
-
 
 sign : comparable -> comparable
 sign x =

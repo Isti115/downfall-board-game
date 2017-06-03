@@ -1,29 +1,11 @@
 module Main exposing (..)
 
 import Dict exposing (Dict)
+import Downfall.Game
 import Downfall.Model
-    exposing
-        ( Angle
-        , Container
-        , Identifier
-        , Model
-        , connect
-        , insertContainer
-        , makeInput
-        , makeOutput
-        , makeSlot
-        , makeWheel
-        )
+import Downfall.Types
 import Downfall.Update
-    exposing
-        ( Msg(Rotate)
-        , update
-        )
 import Html exposing (..)
-
-
--- import Html.Attributes exposing (..)
--- import Html.Events exposing (..)
 
 
 main : Program Never Model Msg
@@ -38,47 +20,31 @@ main =
 
 
 -- MODEL
--- type alias Model =
---     Downfall.Model.Model
+
+
+type alias Model =
+    Downfall.Model.Model
 
 
 init : ( Model, Cmd Msg )
 init =
-    { containers =
-        [ makeInput "A" (List.repeat 5 "Green")
-        , makeWheel "1" 0 (List.map makeSlot [ 45, 135, 225, 315 ])
-        , makeWheel "2" 0 (List.map makeSlot [ 0, 120, 240 ])
-        , makeWheel "3" 0 (List.map makeSlot [ 90, 270 ])
-        , makeOutput "X" []
-        ]
-            |> List.foldl insertContainer Dict.empty
-            |> connect "A" "1" 115
-            |> connect "1" "2" 230
-            |> connect "2" "3" 180
-            |> connect "3" "X" 160
-    }
-        ! []
-        |> Tuple.first
-        |> update (Rotate "1" -20)
-        |> Tuple.first
-        |> update (Rotate "1" 90)
-        |> Tuple.first
-        |> update (Rotate "1" -65)
-        |> Tuple.first
-        |> update (Rotate "2" 70)
-        |> Tuple.first
-        |> update (Rotate "2" (-50 + 50))
+    Downfall.Game.init ! []
 
 
 
 -- UPDATE
--- type alias Msg =
---     Downfall.Update.Msg
---
--- update : Msg -> Model -> ( Model, Cmd Msg )
--- update msg model =
---     Downfall.Update.update msg model ! []
---
+
+
+type alias Msg =
+    Downfall.Types.Msg
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    Downfall.Update.update msg model ! []
+
+
+
 -- VIEW
 
 

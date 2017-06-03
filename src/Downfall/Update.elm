@@ -1,31 +1,29 @@
-module Downfall.Update exposing (Msg(Rotate), update)
+module Downfall.Update exposing (update)
 
-import Downfall.Model
+import Downfall.Connection exposing (getConnections)
+import Downfall.Container
+    exposing
+        ( getIdentifier
+        , pullFromInput
+        , pushToOutput
+        , rotateContainer
+        )
+import Downfall.ContainerStore exposing (getContainer, setContainer)
+import Downfall.Slot exposing (getSlotAt, setSlotAt)
+import Downfall.Types
     exposing
         ( Angle
         , Connection
         , Container(Input, Output, Wheel)
         , ContainerStore
         , Direction(In, Out)
+        , Game
         , Identifier
-        , Model
+        , Msg(Rotate)
         , Slot
         , SlotState(Empty, Occupied)
-        , getConnections
-        , getContainer
-        , getIdentifier
-        , getSlotAt
-        , pullFromInput
-        , pushToOutput
-        , rotateContainer
-        , setContainer
-        , setSlotAt
         )
 import Utilities
-
-
-type Msg
-    = Rotate Identifier Angle
 
 
 updateContainers : Connection -> ( Container, Container ) -> ( Container, Container )
@@ -163,12 +161,12 @@ connectionFilter rotatedContainer connection =
             Debug.crash "connectionFilter: Outputs do not have slots."
 
 
-getUpdatedModel : Identifier -> Angle -> Model -> Model
-getUpdatedModel identifier angle model =
+getUpdatedGame : Identifier -> Angle -> Game -> Game
+getUpdatedGame identifier angle game =
     let
         currentContainer : Container
         currentContainer =
-            getContainer identifier model.containers
+            getContainer identifier game.containers
 
         rotatedContainer : Container
         rotatedContainer =
@@ -181,24 +179,24 @@ getUpdatedModel identifier angle model =
 
         updatedContainers : ContainerStore
         updatedContainers =
-            model.containers
+            game.containers
                 |> setContainer rotatedContainer
                 |> processConnections rotatedContainer filteredConnections
 
-        updatedModel : Model
-        updatedModel =
-            { model | containers = updatedContainers }
+        updatedGame : Game
+        updatedGame =
+            { game | containers = updatedContainers }
     in
-    updatedModel
+    updatedGame
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> Game -> Game
+update msg game =
     case msg of
         Rotate identifier angle ->
             if angle > 0 then
-                update (Rotate identifier (angle - 1)) (getUpdatedModel identifier angle model)
+                update (Rotate identifier (angle - 1)) (getUpdatedGame identifier angle game)
             else if angle < 0 then
-                update (Rotate identifier (angle + 1)) (getUpdatedModel identifier angle model)
+                update (Rotate identifier (angle + 1)) (getUpdatedGame identifier angle game)
             else
-                model ! []
+                game
