@@ -15,25 +15,50 @@ import Downfall.Slot
         )
 import Downfall.Types
     exposing
-        ( Container(Input, Output, Wheel)
+        ( ConnectionDescriptor
+        , Container(Input, Output, Wheel)
         , ContainerStore
         , Game
+        , GameDescriptor
+        , InputDescriptor
         , Msg(Rotate)
+        , OutputDescriptor
+        , WheelDescriptor
         )
 
 
-init : Game
-init =
+inputFromDescriptor : InputDescriptor -> Container
+inputFromDescriptor inputDescriptor =
+    makeInput inputDescriptor.identifier (List.repeat inputDescriptor.circleCount inputDescriptor.colorType)
+
+
+wheelFromDescriptor : WheelDescriptor -> Container
+wheelFromDescriptor wheelDescriptor =
+    makeWheel wheelDescriptor.identifier wheelDescriptor.angle (List.map makeSlot wheelDescriptor.slotAngles)
+
+
+outputFromDescriptor : OutputDescriptor -> Container
+outputFromDescriptor outputDescriptor =
+    makeOutput outputDescriptor.identifier []
+
+
+applyConnectionDescriptor : ConnectionDescriptor -> ContainerStore -> ContainerStore
+applyConnectionDescriptor connectionDescriptor containers =
+    containers |> connect connectionDescriptor.from connectionDescriptor.to connectionDescriptor.angle
+
+
+init : GameDescriptor -> Game
+init gameDescriptor =
+    let
+        containers =
+            List.foldl insertContainer
+                Dict.empty
+                ([]
+                    ++ List.map inputFromDescriptor gameDescriptor.inputs
+                    ++ List.map wheelFromDescriptor gameDescriptor.wheels
+                    ++ List.map outputFromDescriptor gameDescriptor.outputs
+                )
+    in
     { containers =
-        [ makeInput "A" (List.repeat 5 "Green")
-        , makeWheel "1" 0 (List.map makeSlot [ 45, 135, 225, 315 ])
-        , makeWheel "2" 0 (List.map makeSlot [ 0, 120, 240 ])
-        , makeWheel "3" 0 (List.map makeSlot [ 90, 270 ])
-        , makeOutput "X" []
-        ]
-            |> List.foldl insertContainer Dict.empty
-            |> connect "A" "1" 115
-            |> connect "1" "2" 230
-            |> connect "2" "3" 180
-            |> connect "3" "X" 160
+        List.foldl applyConnectionDescriptor containers gameDescriptor.connections
     }

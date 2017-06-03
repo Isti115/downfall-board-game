@@ -1,19 +1,23 @@
 module Downfall.Types
     exposing
         ( Angle
-          -- , CircleCount
         , Color
         , Connection
+        , ConnectionDescriptor
         , Container(Input, Output, Wheel)
         , ContainerStore
         , Direction(In, Out)
         , Game
+        , GameDescriptor
         , Identifier
+        , InputDescriptor
         , InputRecord
         , Msg(Rotate)
+        , OutputDescriptor
         , OutputRecord
         , Slot
         , SlotState(Empty, Occupied)
+        , WheelDescriptor
         , WheelRecord
         )
 
@@ -21,6 +25,40 @@ import Dict exposing (Dict)
 
 
 -- Game
+
+
+type alias InputDescriptor =
+    { identifier : Identifier
+    , colorType : Color
+    , circleCount : Int
+    }
+
+
+type alias WheelDescriptor =
+    { identifier : Identifier
+    , angle : Angle
+    , slotAngles : List Angle
+    }
+
+
+type alias OutputDescriptor =
+    { identifier : Identifier
+    }
+
+
+type alias ConnectionDescriptor =
+    { from : Identifier
+    , to : Identifier
+    , angle : Angle
+    }
+
+
+type alias GameDescriptor =
+    { inputs : List InputDescriptor
+    , wheels : List WheelDescriptor
+    , outputs : List OutputDescriptor
+    , connections : List ConnectionDescriptor
+    }
 
 
 type alias Game =
@@ -42,11 +80,6 @@ type alias ContainerStore =
 
 type alias Identifier =
     String
-
-
-
--- type alias CircleCount =
---     Int
 
 
 type alias Angle =

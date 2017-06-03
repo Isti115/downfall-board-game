@@ -1,5 +1,6 @@
 port module Main exposing (..)
 
+import Config
 import Downfall.Main as Downfall
 import Downfall.Types
 import Html
@@ -40,10 +41,10 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     let
-        ( downfallInit, downfallCmd ) =
-            Downfall.init
+        ( downfall, downfallCmd ) =
+            Downfall.init Config.currentGameDescriptor
     in
-    { downfall = downfallInit
+    { downfall = downfall
     }
         ! [ Cmd.map DownfallMsg downfallCmd ]
 

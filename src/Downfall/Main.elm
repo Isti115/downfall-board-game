@@ -22,9 +22,9 @@ type alias Model =
     Downfall.Types.Game
 
 
-init : ( Model, Cmd Msg )
-init =
-    Downfall.Game.init ! []
+init : Downfall.Types.GameDescriptor -> ( Model, Cmd Msg )
+init gameDescriptor =
+    Downfall.Game.init gameDescriptor ! []
 
 
 
