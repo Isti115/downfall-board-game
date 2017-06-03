@@ -20,7 +20,6 @@ import Downfall.Types
         , Game
         , Msg(Rotate)
         )
-import Downfall.Update exposing (update)
 
 
 init : Game
@@ -38,8 +37,3 @@ init =
             |> connect "2" "3" 180
             |> connect "3" "X" 160
     }
-        |> update (Rotate "1" -20)
-        |> update (Rotate "1" 90)
-        |> update (Rotate "1" -65)
-        |> update (Rotate "2" 70)
-        |> update (Rotate "2" (-50 + 50))

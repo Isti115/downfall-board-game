@@ -72,6 +72,7 @@ updateContainers connection ( rotatedContainer, connectedContainer ) =
                     case maybeConnectedContainerSlot of
                         Just connectedContainerSlot ->
                             case ( connection.direction, rotatedCotnainerSlot.state, connectedContainerSlot.state ) of
+                                -- Checking the local slot's state is redundant because of the filtering.
                                 ( In, Empty as local, (Occupied currentColor) as remote ) ->
                                     ( setSlotAt connection.localAngle remote rotatedContainer
                                     , setSlotAt connection.remoteAngle local connectedContainer
@@ -90,6 +91,7 @@ updateContainers connection ( rotatedContainer, connectedContainer ) =
 
                 Output containerRecord ->
                     case rotatedCotnainerSlot.state of
+                        -- Checking the local slot's state is redundant because of the filtering.
                         Occupied currentColor ->
                             ( setSlotAt connection.localAngle Empty rotatedContainer
                             , pushToOutput currentColor connectedContainer

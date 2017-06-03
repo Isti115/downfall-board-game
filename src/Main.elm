@@ -1,6 +1,7 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Downfall.Main as Downfall
+import Downfall.Types
 import Html
 
 
@@ -12,6 +13,19 @@ main =
         , update = update
         , subscriptions = subscriptions
         }
+
+
+type alias RotationRecord =
+    { identifier : String
+    , angle : Int
+    }
+
+
+
+-- port statusOutput : Int -> Cmd msg
+
+
+port rotationInput : (RotationRecord -> msg) -> Sub msg
 
 
 
@@ -51,6 +65,7 @@ view model =
 
 type Msg
     = DownfallMsg Downfall.Msg
+    | IncomingRotation RotationRecord
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,6 +78,15 @@ update msg model =
             in
             { model | downfall = downfall } ! [ Cmd.map DownfallMsg downfallCmd ]
 
+        IncomingRotation rotationRecord ->
+            let
+                ( downfall, downfallCmd ) =
+                    Downfall.update
+                        (Downfall.Types.Rotate rotationRecord.identifier rotationRecord.angle)
+                        model.downfall
+            in
+            { model | downfall = downfall } ! [ Cmd.map DownfallMsg downfallCmd ]
+
 
 
 -- SUBSCRIPTIONS
@@ -72,4 +96,5 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Sub.map DownfallMsg (Downfall.subscriptions model.downfall)
+        , rotationInput IncomingRotation
         ]
