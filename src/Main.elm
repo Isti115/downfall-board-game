@@ -1,6 +1,7 @@
 port module Main exposing (..)
 
 import Config
+import Downfall.Game
 import Downfall.Main as Downfall
 import Downfall.Types
 import Html
@@ -22,11 +23,10 @@ type alias RotationRecord =
     }
 
 
-
--- port statusOutput : Int -> Cmd msg
-
-
 port rotationInput : (RotationRecord -> msg) -> Sub msg
+
+
+port statusOutput : ( Downfall.Types.Status, Downfall.Types.Status ) -> Cmd msg
 
 
 
@@ -86,7 +86,13 @@ update msg model =
                         (Downfall.Types.Rotate rotationRecord.identifier rotationRecord.angle)
                         model.downfall
             in
-            { model | downfall = downfall } ! [ Cmd.map DownfallMsg downfallCmd ]
+            { model | downfall = downfall }
+                ! [ Cmd.map DownfallMsg downfallCmd
+                  , ( Downfall.Game.getStatus downfall
+                    , Downfall.Game.getStatus downfall
+                    )
+                        |> statusOutput
+                  ]
 
 
 

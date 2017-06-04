@@ -1,6 +1,7 @@
 module Downfall.ContainerStore
     exposing
         ( getContainer
+        , getSumOfOutputs
         , insertContainer
         , pullFromInput
         , pushToOutput
@@ -94,3 +95,21 @@ pushToOutput currentColor outputContainer =
 
         Output containerRecord ->
             Output { containerRecord | colors = currentColor :: containerRecord.colors }
+
+
+getSumOfOutputs : ContainerStore -> Int
+getSumOfOutputs containers =
+    Dict.foldl
+        (\k v s ->
+            case v of
+                Input _ ->
+                    s
+
+                Wheel _ ->
+                    s
+
+                Output containerRecord ->
+                    s + List.length containerRecord.colors
+        )
+        0
+        containers

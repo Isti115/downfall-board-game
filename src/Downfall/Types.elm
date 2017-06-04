@@ -17,6 +17,7 @@ module Downfall.Types
         , OutputRecord
         , Slot
         , SlotState(Empty, Occupied)
+        , Status
         , WheelDescriptor
         , WheelRecord
         )
@@ -63,6 +64,11 @@ type alias GameDescriptor =
 
 type alias Game =
     { containers : ContainerStore
+    }
+
+
+type alias Status =
+    { outputCount : Int
     }
 
 

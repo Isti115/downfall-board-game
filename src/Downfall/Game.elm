@@ -1,4 +1,12 @@
-module Downfall.Game exposing (..)
+module Downfall.Game
+    exposing
+        ( applyConnectionDescriptor
+        , getStatus
+        , init
+        , inputFromDescriptor
+        , outputFromDescriptor
+        , wheelFromDescriptor
+        )
 
 import Dict exposing (Dict)
 import Downfall.Connection exposing (connect)
@@ -8,7 +16,7 @@ import Downfall.Container
         , makeOutput
         , makeWheel
         )
-import Downfall.ContainerStore exposing (insertContainer)
+import Downfall.ContainerStore exposing (getSumOfOutputs, insertContainer)
 import Downfall.Slot
     exposing
         ( makeSlot
@@ -23,6 +31,7 @@ import Downfall.Types
         , InputDescriptor
         , Msg(Rotate)
         , OutputDescriptor
+        , Status
         , WheelDescriptor
         )
 
@@ -61,4 +70,10 @@ init gameDescriptor =
     in
     { containers =
         List.foldl applyConnectionDescriptor containers gameDescriptor.connections
+    }
+
+
+getStatus : Game -> Status
+getStatus game =
+    { outputCount = getSumOfOutputs game.containers
     }
