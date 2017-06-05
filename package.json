@@ -4,6 +4,7 @@
   "description": "Downfall Board Game in Elm",
   "scripts": {
     "start": "elm-reactor",
+    "make": "elm-make src/Worker.elm --output Downfall-Worker.js",
     "test": "nodemon -w ./tests -e .elm -x \"clear && elm-test || exit 1\""
   },
   "author": "isti115",

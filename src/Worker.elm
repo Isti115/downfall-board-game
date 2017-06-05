@@ -4,14 +4,12 @@ import Config
 import Downfall.Game
 import Downfall.Main as Downfall
 import Downfall.Types
-import Html
 
 
 main : Program Never Model Msg
 main =
-    Html.program
+    Platform.program
         { init = init
-        , view = view
         , update = update
         , subscriptions = subscriptions
         }
@@ -54,19 +52,6 @@ init =
         ! [ Cmd.map Downfall1Msg downfall1Cmd
           , Cmd.map Downfall2Msg downfall2Cmd
           ]
-
-
-
--- VIEW
-
-
-view : Model -> Html.Html Msg
-view model =
-    Html.div []
-        [ Html.map Downfall1Msg (Downfall.view model.downfall1)
-        , Html.hr [] []
-        , Html.map Downfall2Msg (Downfall.view model.downfall2)
-        ]
 
 
 
