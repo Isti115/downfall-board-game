@@ -16,7 +16,12 @@ import Downfall.Container
         , makeOutput
         , makeWheel
         )
-import Downfall.ContainerStore exposing (getSumOfOutputs, insertContainer)
+import Downfall.ContainerStore
+    exposing
+        ( getNeuralData
+        , getSumOfOutputs
+        , insertContainer
+        )
 import Downfall.Slot
     exposing
         ( makeSlot
@@ -48,7 +53,7 @@ wheelFromDescriptor wheelDescriptor =
 
 outputFromDescriptor : OutputDescriptor -> Container
 outputFromDescriptor outputDescriptor =
-    makeOutput outputDescriptor.identifier []
+    makeOutput outputDescriptor.identifier [] outputDescriptor.finishedCount
 
 
 applyConnectionDescriptor : ConnectionDescriptor -> ContainerStore -> ContainerStore
@@ -75,5 +80,6 @@ init gameDescriptor =
 
 getStatus : Game -> Status
 getStatus game =
-    { outputCount = getSumOfOutputs game.containers
+    { neuralData = getNeuralData game.containers
+    , outputCount = getSumOfOutputs game.containers
     }

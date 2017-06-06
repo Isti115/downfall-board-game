@@ -26,7 +26,15 @@ type alias RotationRecord =
 port rotationInput : (RotationRecord -> msg) -> Sub msg
 
 
-port statusOutput : ( Downfall.Types.Status, Downfall.Types.Status ) -> Cmd msg
+type alias StatusRecord =
+    { ownData : List Float
+    , ownCount : ( Int, Int )
+    , otherCount : ( Int, Int )
+    , prevTwoRotated : List Downfall.Types.Identifier
+    }
+
+
+port statusOutput : ( StatusRecord, StatusRecord ) -> Cmd msg
 
 
 
@@ -36,6 +44,7 @@ port statusOutput : ( Downfall.Types.Status, Downfall.Types.Status ) -> Cmd msg
 type alias Model =
     { downfall1 : Downfall.Model
     , downfall2 : Downfall.Model
+    , prevTwoRotated : List Downfall.Types.Identifier
     }
 
 
@@ -50,6 +59,7 @@ init =
     in
     { downfall1 = downfall1
     , downfall2 = downfall2
+    , prevTwoRotated = [ "0", "0" ]
     }
         ! [ Cmd.map Downfall1Msg downfall1Cmd
           , Cmd.map Downfall2Msg downfall2Cmd
@@ -107,15 +117,46 @@ update msg model =
                     Downfall.update
                         (Downfall.Types.Rotate rotationRecord.identifier rotationRecord.angle)
                         model.downfall2
+
+                downfall1Status =
+                    Downfall.Game.getStatus downfall1
+
+                downfall2Status =
+                    Downfall.Game.getStatus downfall2
+
+                newPrevTwoRotated =
+                    case model.prevTwoRotated of
+                        [ a, b ] ->
+                            [ rotationRecord.identifier, a ]
+
+                        _ ->
+                            Debug.crash "prevTwoRotated: Should always have a length of two."
             in
             { model
                 | downfall1 = downfall1
                 , downfall2 = downfall2
+                , prevTwoRotated = newPrevTwoRotated
             }
                 ! [ Cmd.map Downfall1Msg downfall1Cmd
                   , Cmd.map Downfall2Msg downfall2Cmd
-                  , ( Downfall.Game.getStatus downfall1
-                    , Downfall.Game.getStatus downfall2
+                  , ( { ownData =
+                            downfall1Status.neuralData
+                                ++ [ (\( a, b ) -> toFloat a / toFloat b)
+                                        downfall2Status.outputCount
+                                   ]
+                      , ownCount = downfall1Status.outputCount
+                      , otherCount = downfall2Status.outputCount
+                      , prevTwoRotated = newPrevTwoRotated
+                      }
+                    , { ownData =
+                            downfall2Status.neuralData
+                                ++ [ (\( a, b ) -> toFloat a / toFloat b)
+                                        downfall1Status.outputCount
+                                   ]
+                      , ownCount = downfall2Status.outputCount
+                      , otherCount = downfall1Status.outputCount
+                      , prevTwoRotated = newPrevTwoRotated
+                      }
                     )
                         |> statusOutput
                   ]

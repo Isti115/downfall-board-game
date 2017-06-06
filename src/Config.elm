@@ -21,7 +21,7 @@ currentGameDescriptor =
         , WheelDescriptor "3" 0 [ 90, 270 ]
         ]
     , outputs =
-        [ OutputDescriptor "X"
+        [ OutputDescriptor "X" 5
         ]
     , connections =
         [ ConnectionDescriptor "A" "1" 115

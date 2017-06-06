@@ -25,6 +25,7 @@ makeInput identifier colors =
     Input
         { identifier = identifier
         , colors = colors
+        , initialCount = List.length colors
         , connections = []
         }
 
@@ -39,11 +40,12 @@ makeWheel identifier angle slots =
         }
 
 
-makeOutput : Identifier -> List Color -> Container
-makeOutput identifier colors =
+makeOutput : Identifier -> List Color -> Int -> Container
+makeOutput identifier colors finishedCount =
     Output
         { identifier = identifier
         , colors = colors
+        , finishedCount = finishedCount
         , connections = []
         }
 

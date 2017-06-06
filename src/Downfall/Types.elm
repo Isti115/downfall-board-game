@@ -44,6 +44,7 @@ type alias WheelDescriptor =
 
 type alias OutputDescriptor =
     { identifier : Identifier
+    , finishedCount : Int
     }
 
 
@@ -68,7 +69,8 @@ type alias Game =
 
 
 type alias Status =
-    { outputCount : Int
+    { neuralData : List Float
+    , outputCount : ( Int, Int )
     }
 
 
@@ -101,6 +103,7 @@ type Container
 type alias InputRecord =
     { identifier : Identifier
     , colors : List Color
+    , initialCount : Int
     , connections : List Connection
     }
 
@@ -116,6 +119,7 @@ type alias WheelRecord =
 type alias OutputRecord =
     { identifier : Identifier
     , colors : List Color
+    , finishedCount : Int
     , connections : List Connection
     }
 

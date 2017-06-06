@@ -1,6 +1,7 @@
 module Downfall.ContainerStore
     exposing
         ( getContainer
+        , getNeuralData
         , getSumOfOutputs
         , insertContainer
         , pullFromInput
@@ -13,9 +14,11 @@ import Downfall.Container exposing (getIdentifier)
 import Downfall.Types
     exposing
         ( Color
+        , Connection
         , Container(Input, Output, Wheel)
         , ContainerStore
         , Identifier
+        , SlotState(Empty, Occupied)
         )
 
 
@@ -97,19 +100,60 @@ pushToOutput currentColor outputContainer =
             Output { containerRecord | colors = currentColor :: containerRecord.colors }
 
 
-getSumOfOutputs : ContainerStore -> Int
+connectionsToNeuralData : List Connection -> List Float
+connectionsToNeuralData connections =
+    connections
+        |> List.map (\connection -> toFloat connection.localAngle / 360)
+
+
+getNeuralData : ContainerStore -> List Float
+getNeuralData containers =
+    Dict.toList containers
+        |> List.concatMap
+            (\( k, c ) ->
+                case c of
+                    Input containerRecord ->
+                        [ toFloat (List.length containerRecord.colors) / toFloat containerRecord.initialCount ]
+                            ++ connectionsToNeuralData containerRecord.connections
+
+                    Wheel containerRecord ->
+                        (toFloat containerRecord.angle / 360)
+                            :: (containerRecord.slots
+                                    |> List.concatMap
+                                        (\slot ->
+                                            [ toFloat slot.angle / 360
+                                            , case slot.state of
+                                                Empty ->
+                                                    0
+
+                                                Occupied _ ->
+                                                    1
+                                            ]
+                                        )
+                               )
+                            ++ connectionsToNeuralData containerRecord.connections
+
+                    Output containerRecord ->
+                        connectionsToNeuralData containerRecord.connections
+                            ++ [ toFloat (List.length containerRecord.colors) / toFloat containerRecord.finishedCount ]
+            )
+
+
+getSumOfOutputs : ContainerStore -> ( Int, Int )
 getSumOfOutputs containers =
     Dict.foldl
-        (\k v s ->
+        (\k v ( s, sm ) ->
             case v of
                 Input _ ->
-                    s
+                    ( s, sm )
 
                 Wheel _ ->
-                    s
+                    ( s, sm )
 
                 Output containerRecord ->
-                    s + List.length containerRecord.colors
+                    ( s + List.length containerRecord.colors
+                    , sm + containerRecord.finishedCount
+                    )
         )
-        0
+        ( 0, 0 )
         containers
